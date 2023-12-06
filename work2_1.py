@@ -383,19 +383,23 @@ def add_dataframe_with_leveling(base_dataframe: pd.DataFrame, adding_dataframe: 
             flag = False
         if flag:
             x_temp_base = np.array(base_dataframe.iloc[-number_of_points:].loc[:, "timestamp"])
+            x_start_point = x_temp_base[0]
+            x_temp_base = x_temp_base - x_start_point
             y_base = np.array(base_dataframe.iloc[-number_of_points:].loc[:, "los_tec"])
             x_base = x_temp_base[:, np.newaxis]**[0, 1]
             solve_base = lstsq(x_base, y_base)
             x_temp_adding = np.array(adding_dataframe.iloc[0: number_of_points].loc[:, "timestamp"])
+            x_temp_adding = x_temp_adding - x_start_point
             y_adding = np.array(adding_dataframe.iloc[0: number_of_points].loc[:, "los_tec"])
             x_adding = x_temp_adding[:, np.newaxis] ** [0, 1]
             solve_adding = lstsq(x_adding, y_adding)
-            midpoint = (adding_dataframe.iloc[0].loc["timestamp"] + base_dataframe.iloc[-1].loc["timestamp"]) / 2
-            y_base_midpoint = solve_base[0][0] + solve_base[0][1] * midpoint
-            y_adding_midpoint = solve_adding[0][0] + solve_adding[0][1] * midpoint
+            temp_midpoint = ((adding_dataframe.iloc[0].loc["timestamp"] + base_dataframe.iloc[-1].loc["timestamp"]) / 2
+                             - x_start_point)
+            y_base_midpoint = solve_base[0][0] + solve_base[0][1] * temp_midpoint
+            y_adding_midpoint = solve_adding[0][0] + solve_adding[0][1] * temp_midpoint
             level_difference = y_base_midpoint - y_adding_midpoint
             adding_dataframe.loc[:, "los_tec"] = adding_dataframe.loc[:, "los_tec"] + level_difference
-            list_new_timestamp = list(range(int(base_dataframe.iloc[-1].loc["timestamp"]),
+            list_new_timestamp = list(range(int(base_dataframe.iloc[-1].loc["timestamp"]) + PERIOD_CONST,
                                             int(adding_dataframe.iloc[0].loc["timestamp"]), PERIOD_CONST))
             list_new_los_tec = np.interp(list_new_timestamp, [base_dataframe.iloc[-1].loc["timestamp"],
                                                               adding_dataframe.iloc[0].loc["timestamp"]],
@@ -678,7 +682,7 @@ def save_los_tec_txt_file_for_some_sites_from_los_file(los_file_path, list_gps_s
         mask = np.logical_or(mask, temp_mask)
 
     print(f"Reading data for sites ------------------------------- {dt.datetime.now()}")
-    los_dataframe = rlos.get_data_by_indecies_GPS_pd(los_file_path, mask)
+    los_dataframe = rlos.get_data_by_indeces_GPS_pd(los_file_path, mask)
     print(f"End of reading data for sites ------------------------ {dt.datetime.now()} -- {dt.datetime.now()-start}")
 
     max_nonbreakable_period_between_points = 5 * PERIOD_CONST
@@ -747,6 +751,8 @@ def get_date_from_date_directory_name(date_directory_name):
 SAVE_PATH8 = r"/home/vadymskipa/Documents/PhD_student/temp/SAVE/DTEC_FROM_MADRIGAL_FILES/dtec_txt/bor1/"
 SOURCE_DIRECTORY_PATH8 = r"/home/vadymskipa/Documents/PhD_student/temp/SAVE/DTEC_FROM_MADRIGAL_FILES/los_tec_txt/bor1/"
 LIST_PARAMS1 = ({"window_length": 3600}, {"window_length": 7200})
+SOURCE_DIRECTORY_PATH8_1 = r"/home/vadymskipa/Documents/PhD_student/temp/SAVE/DTEC_FROM_MADRIGAL_FILES/los_tec_txt/krrs/"
+
 def get_dtec_from_los_tec_txt_1(source_directory_path, save_directory_path, list_params=LIST_PARAMS1):
     max_nonbreakable_period_between_points = 8 * PERIOD_CONST
     list_of_date_directory_paths = get_date_directory_paths_from_directory(source_directory_path)
@@ -908,4 +914,5 @@ def temp_main1():
 
 
 if __name__ == "__main__":
-    plot_graphs_for_site_directory(SOURCE_DIRECTORY_PATH11, SAVE_PATH11)
+    # plot_graphs_for_site_directory(SOURCE_DIRECTORY_PATH11, SAVE_PATH11)
+    get_dtec_from_los_tec_txt_1(SOURCE_DIRECTORY_PATH8_1, SOURCE_DIRECTORY_PATH11)
